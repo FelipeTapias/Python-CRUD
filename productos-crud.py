@@ -14,6 +14,8 @@
 
 
 # Importamos la librería tkinter
+import matplotlib.pyplot as plt
+import numpy as np
 from tkinter import ttk
 from tkinter import *
 
@@ -24,6 +26,8 @@ class Producto:
 
     #Nombre de la base de datos
     db_nombre = 'database.db'
+    datosPrecio = []
+    datosNombres = []
 
     # Inicialización
     def __init__(self, window):
@@ -60,7 +64,7 @@ class Producto:
         self.tree.heading('#1', text = 'Precio', anchor = CENTER)
 
         # Botones con las acciones
-        ttk.Button(text = "Editar producto").grid(row = 5, column = 0, sticky = W + E, pady = 10)
+        ttk.Button(text = "").grid(row = 5, column = 0, sticky = W + E, pady = 10)
         ttk.Button(text = "Eliminar producto", command = self.eliminar_producto).grid(row = 5, column = 1, sticky = W + E, pady = 10)
 
         # Rellenar la tabla
@@ -77,15 +81,24 @@ class Producto:
     # Obtiene los productos de la base de datos
     def obtener_productos(self):
         # Limpia la tabla
+        self.datosPrecio = []
+        self.datosNombres = []
+        plt.close()
         records = self.tree.get_children()
         for element in records:
             self.tree.delete(element)
         # Consulta: Obtiene los datos
-        query = 'SELECT * FROM producto ORDER BY precio DESC'
+        query = 'SELECT * FROM producto'
         db_rows = self.run_query(query)
         # Rellena los datos
         for row in db_rows:
+            self.datosNombres.append(row[1])
+            self.datosPrecio.append(row[2])
             self.tree.insert('', 0, text = row[1], values = row[2])
+        plt.ylabel('Precio')
+        plt.xlabel('Producto')
+        plt.bar(self.datosNombres, self.datosPrecio)
+        plt.show()
 
     # User Input Validation
     def validacion(self):
@@ -120,6 +133,9 @@ class Producto:
         self.message['text'] = 'Producto {} eliminado éxitosamente'.format(name)
         self.message['fg'] = 'green'
         self.obtener_productos()
+
+    # def graficar(self, resultado):
+        
 
 
 #Ejecuta el contructor de la clase Producto
