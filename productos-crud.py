@@ -21,8 +21,13 @@ from tkinter import *
 import sqlite3
 
 class Producto:
+
+    #Nombre de la base de datos
+    db_nombre = 'database.db'
+
     # Inicialización
     def __init__(self, window):
+
         self.wind = window
         self.wind.title('Aplicación de productos')
 
@@ -42,7 +47,11 @@ class Producto:
         self.precio.grid(row = 2, column = 1)
 
         # Boton para añadir producto
-        ttk.Button(frame, text = "Guardar producto").grid(row = 3, columnspan = 2, sticky = W + E)
+        ttk.Button(frame, text = "Guardar producto", command= self.agregar_producto).grid(row = 3, columnspan = 2, sticky = W + E)
+
+        # Mensaje de salida
+        self.message = Label(text = '', fg = 'red')
+        self.message.grid(row = 3, column = 0, columnspan = 2, sticky = W + E)
 
         # Tabla
         self.tree = ttk.Treeview(height = 10, columns = 2)
@@ -52,24 +61,67 @@ class Producto:
 
         # Botones con las acciones
         ttk.Button(text = "Editar producto").grid(row = 5, column = 0, sticky = W + E, pady = 10)
-        ttk.Button(text = "Eliminar producto").grid(row = 5, column = 1, sticky = W + E, pady = 10)
+        ttk.Button(text = "Eliminar producto", command = self.eliminar_producto).grid(row = 5, column = 1, sticky = W + E, pady = 10)
 
-        #Mock?
-        # Filling the Rows
-        self.get_products()
+        # Rellenar la tabla
+        self.obtener_productos()
+    
+    #Metodo que ejecuta la consulta
+    def run_query(self, query, parametros = ()):
+        with sqlite3.connect(self.db_nombre) as conn:
+            cursor = conn.cursor()
+            resultado = cursor.execute(query, parametros)
+            conn.commit()
+        return resultado
 
-        # Get Products from Database
-    def get_products(self):
+    # Obtiene los productos de la base de datos
+    def obtener_productos(self):
         # Limpia la tabla
         records = self.tree.get_children()
         for element in records:
             self.tree.delete(element)
-        # Data de prueba
-        db_rows = [{"nombre": "Maquina", "precio": "1299"},{"nombre": "Ordenador", "precio": "2269"},{"nombre": "Tablet", "precio": "736"}]
-        # filling data
+        # Consulta: Obtiene los datos
+        query = 'SELECT * FROM producto ORDER BY precio DESC'
+        db_rows = self.run_query(query)
+        # Rellena los datos
         for row in db_rows:
-            self.tree.insert('', 0, text = row.get('nombre'), values = row.get('precio'))
+            self.tree.insert('', 0, text = row[1], values = row[2])
+
+    # User Input Validation
+    def validacion(self):
+        return len(self.name.get()) != 0 and len(self.precio.get()) != 0
     
+    def agregar_producto(self):
+        if self.validacion():
+            query = 'INSERT INTO producto VALUES(NULL, ?, ?)'
+            parameters =  (self.name.get(), self.precio.get())
+            self.run_query(query, parameters)
+            self.message['text'] = 'Producto {} ha sido agregado éxitosamente'.format(self.name.get())
+            self.message['fg'] = 'green'
+            self.name.delete(0, END)
+            self.precio.delete(0, END)
+        else:
+            self.message['text'] = 'Campos requeridos'
+            self.message['fg'] = 'red'
+        self.obtener_productos()
+
+    def eliminar_producto(self):
+        self.message['text'] = ''
+        try:
+            self.tree.item(self.tree.selection())['text'][0]
+        except IndexError as e:
+            self.message['text'] = 'Por favor selecciona un producto'
+            self.message['fg'] = 'red'
+            return
+        self.message['text'] = ''
+        name = self.tree.item(self.tree.selection())['text']
+        query = 'DELETE FROM producto WHERE nombre = ?'
+        self.run_query(query, (name, ))
+        self.message['text'] = 'Producto {} eliminado éxitosamente'.format(name)
+        self.message['fg'] = 'green'
+        self.obtener_productos()
+
+
 #Ejecuta el contructor de la clase Producto
 if __name__ == '__main__':
     window = Tk()
